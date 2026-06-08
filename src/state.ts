@@ -1,5 +1,5 @@
 import { getTemplate, pickFromPool, STARTER_RITES, TIER_RULES, templateForType } from "./data/rites";
-import { BreachRecord, HistoryEntry, Rite, RunState, UnlockTier, UnlockType } from "./types";
+import { BackupRecord, BreachRecord, HistoryEntry, RevealEvent, Rite, RunState, UnlockTier, UnlockType } from "./types";
 
 export const STORAGE_KEY = "burialbound-state-v2";
 const LEGACY_STORAGE_KEY = "burialbound-state-v1";
@@ -8,10 +8,14 @@ export const defaultRunState: RunState = {
   runName: "Grave Ledger",
   accountStyle: "Ironman",
   phase: "Early",
+  activeTab: "draft",
+  animationsEnabled: true,
+  hasSeenOnboarding: false,
   pendingRites: [],
   memorialArchive: [],
   breaches: [],
   breachNotes: [],
+  backups: [],
   history: [],
   strictMode: true
 };
@@ -89,6 +93,36 @@ export function createBreach(input: {
   };
 }
 
+export function createReveal(kind: RevealEvent["kind"], title: string, detail: string): RevealEvent {
+  return {
+    id: createId("reveal"),
+    kind,
+    title,
+    detail
+  };
+}
+
+export function createBackup(state: RunState, reason: string): BackupRecord {
+  const snapshotState = {
+    ...state,
+    backups: state.backups.slice(0, 5),
+    lastReveal: undefined
+  };
+  return {
+    id: createId("backup"),
+    timestamp: Date.now(),
+    reason,
+    snapshot: JSON.stringify(snapshotState)
+  };
+}
+
+export function withBackup(state: RunState, reason: string): RunState {
+  return {
+    ...state,
+    backups: [createBackup(state, reason), ...state.backups].slice(0, 8)
+  };
+}
+
 export function hydrateRite(rite: Partial<Rite>): Rite {
   const unlockType = rite.unlockType || "Gear";
   const tier = rite.tier || "Notable";
@@ -146,6 +180,9 @@ export function hydrateState(parsed: Partial<RunState>): RunState {
     ...parsed,
     accountStyle: parsed.accountStyle || "Ironman",
     phase: parsed.phase || "Early",
+    activeTab: parsed.activeTab || "draft",
+    animationsEnabled: typeof parsed.animationsEnabled === "boolean" ? parsed.animationsEnabled : true,
+    hasSeenOnboarding: Boolean(parsed.hasSeenOnboarding),
     pendingRites: Array.isArray(parsed.pendingRites) ? parsed.pendingRites.map(hydrateRite) : [],
     memorialArchive: Array.isArray(parsed.memorialArchive) ? parsed.memorialArchive.map(hydrateRite) : [],
     breaches: Array.isArray(parsed.breaches)
@@ -154,6 +191,8 @@ export function hydrateState(parsed: Partial<RunState>): RunState {
         ? parsed.breachNotes.map(hydrateBreach)
         : [],
     breachNotes: Array.isArray(parsed.breachNotes) ? parsed.breachNotes : [],
+    backups: Array.isArray(parsed.backups) ? parsed.backups.slice(0, 8) : [],
+    lastReveal: parsed.lastReveal,
     history: Array.isArray(parsed.history) ? parsed.history : []
   };
 }

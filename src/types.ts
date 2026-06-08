@@ -5,6 +5,8 @@ export type AccountStyle = "Main" | "Ironman" | "Group Iron" | "Ultimate Iron" |
 export type RunPhase = "Early" | "Midgame" | "Late Game" | "Endgame";
 export type BreachSeverity = "Minor" | "Serious" | "Grave";
 export type BreachStatus = "open" | "atoned";
+export type AppTab = "draft" | "rite" | "registers" | "archive" | "codex";
+export type RevealKind = "rite" | "burial" | "breach";
 
 export interface RiteTemplate {
   id: string;
@@ -57,14 +59,33 @@ export interface HistoryEntry {
   detail: string;
 }
 
+export interface BackupRecord {
+  id: string;
+  timestamp: number;
+  reason: string;
+  snapshot: string;
+}
+
+export interface RevealEvent {
+  id: string;
+  kind: RevealKind;
+  title: string;
+  detail: string;
+}
+
 export interface RunState {
   runName: string;
   accountStyle: AccountStyle;
   phase: RunPhase;
+  activeTab: AppTab;
+  animationsEnabled: boolean;
+  hasSeenOnboarding: boolean;
   pendingRites: Rite[];
   memorialArchive: Rite[];
   breaches: BreachRecord[];
   breachNotes: string[];
+  backups: BackupRecord[];
+  lastReveal?: RevealEvent;
   history: HistoryEntry[];
   strictMode: boolean;
 }
